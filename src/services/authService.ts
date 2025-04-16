@@ -3,11 +3,14 @@ import { AppError } from '../utils/appError';
 import { User } from '../models/user';
 import { signAccessToken, signRefreshToken } from '../utils/jwt';
 
-export const register = async (email: string, password: string) => {
+export const register = async (name: string, email: string, password: string) => {
     const existing = await User.findOne({ email });
-    if (existing) throw new Error('Email already in use');
+    if (existing) throw new AppError("User already exists", 409)
+    if (password.length < 6) throw new AppError("Password must be at least 6 characters", 400)
 
-    const user = await User.create({ email, password });
+    const user = new User({ name, email, password });
+    const newUser = await user.save();
+    if (!newUser) throw new AppError("User not created", 500)
     return user;
 };
 
@@ -17,7 +20,7 @@ export const login = async (email: string, password: string) => {
         throw new AppError("User not found", 404)
     }
     if (await bcrypt.compare(password, user.password)) {
-
+        throw new AppError("Invalid credentials", 401)
     }
 
     const accessToken = signAccessToken(user._id.toString());
