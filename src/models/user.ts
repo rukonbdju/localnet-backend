@@ -1,18 +1,26 @@
 import { model, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { locationSchema } from './location';
+import { geolocation } from './location';
 
 
 const userSchema = new Schema(
     {
-        username: { type: String, required: true, unique: true },
+        username: { type: String, unique: true },
         name: { type: String, required: true },
         email: { type: String, required: true, unique: true },
         password: { type: String, required: true },
-        currentLocation: { type: locationSchema, index: "2dsphere" },
-        lastLocation: { type: locationSchema, index: "2dsphere" },
+        currentGeolocation: { type: geolocation, index: "2dsphere" },
+        primaryGeolocation: { type: geolocation, index: "2dsphere", required: true },
+        lastGeolocation: { type: geolocation, index: "2dsphere" },
         address: { type: String, required: true },
-        phone: { type: String },
+        country: { type: String, required: true },
+        city: { type: String, default: '' },
+        state: { type: String, default: '' },
+        district: { type: String, default: '' },
+        village: { type: String, default: '' },
+        countryCode: { type: String, default: '' },
+        dateOfBirth: { type: Date, },
+        phone: { type: String, default: '' },
         avatar: { type: String, default: '' },
         coverPhoto: { type: String, default: '' },
         bio: { type: String, default: '' },
@@ -31,7 +39,7 @@ userSchema.pre('save', async function () {
 userSchema.pre('save', function () {
     if (!this.isModified('email')) return;
     let username = this.email.split('@')[0];
-    this.username = username.replace(/[^a-zA-Z0-9]/g, '');
+    this.username = username.replace(/[^a-zA-Z0-9]/g, '') + new Date().getTime().toString().slice(-5);
 });
 
 export const User = model('User', userSchema);

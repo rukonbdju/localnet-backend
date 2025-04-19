@@ -1,6 +1,6 @@
 import { Schema } from "mongoose";
 
-export const locationSchema = new Schema({
+export const geolocation = new Schema({
     type: {
         type: String,
         enum: ['Point'],

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AppError } from '../utils/appError';
 
-const ACCESS_SECRET = process.env.SECRET!;
+const ACCESS_SECRET = process.env.ACCESS_TOKEN_SECRET || "";
 
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
