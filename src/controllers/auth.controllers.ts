@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as AuthService from '../services/authService';
 import { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken } from '../utils/jwt';
+import { ref } from 'process';
 
 // This function is used to register a new user
 export const signup = async (req: Request, res: Response, next: NextFunction) => {
@@ -92,13 +93,34 @@ export const refreshToken = async (req: Request, res: Response) => {
 //This function is used to get logged in user data
 export const getLoggedInUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const token = req.cookies._localNet_access_token_ || req.cookies._localNet_refresh_token_;
-        if (!token) {
-            res.status(401).json({ message: 'Access token missing' });
-            return;
+        const accessToken = req.cookies._localNet_access_token_;
+        const refreshToken = req.cookies._localNet_refresh_token_;
+        let user: object | null = null;
+        if (accessToken) {
+            const decoded = verifyAccessToken(accessToken) as { userId: string };
+            user = await AuthService.getUserById(decoded.userId);
         }
-        const decoded = verifyAccessToken(token) as { userId: string };
-        const user = await AuthService.getUserById(decoded.userId);
+        else if (refreshToken) {
+            const decoded = verifyRefreshToken(refreshToken) as { userId: string };
+            const newAccessToken = signAccessToken(decoded.userId);
+            const newRefreshToken = signRefreshToken(decoded.userId);
+            // Set the access token as a cookie with httpOnly and secure flags
+            res.cookie('_localNet_access_token_', newAccessToken, {
+                httpOnly: true,
+                maxAge: 60 * 60 * 1000, // 1 hour
+                sameSite: 'strict',
+                secure: process.env.NODE_ENV === 'production' // Set to true in production
+            })
+
+            // Set the refresh token as a cookie with httpOnly and secure flags
+            res.cookie('_localNet_refresh_token_', newRefreshToken, {
+                httpOnly: true,
+                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+                sameSite: 'strict',
+                secure: process.env.NODE_ENV === 'production'
+            })
+            user = await AuthService.getUserById(decoded.userId);
+        }
         if (!user) {
             res.status(404).json({ message: 'User not found' });
             return;
